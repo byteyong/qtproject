@@ -30,8 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  static const _assetPath = 'assets/bible/john_3.txt';
-
   @override
   void initState() {
     super.initState();
@@ -75,11 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
       chapterTitle: _chapterTitle,
       verseTexts: verseTexts,
     );
-    if (mounted)
+    if (mounted) {
       setState(() {
         _questions = q;
         _loadingQ = false;
       });
+    }
   }
 
   void _goToPage(int page) {
@@ -126,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
           flex: 1,
           child: Container(
             color: AppColors.bg,
-            padding: const EdgeInsets.all(32), // 여백을 조금 더 줌
+            padding: const EdgeInsets.all(32),
             child: Column(
               children: [
                 QTQuestionCard(
@@ -151,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 모바일: 슬라이드 (PageView)
+  // 모바일: 슬라이드 (PageView) - 오버플로우 패치 완료
   // ══════════════════════════════════════════════════════════════
   Widget _buildMobileLayout() {
     return Column(
@@ -164,17 +163,18 @@ class _HomeScreenState extends State<HomeScreen> {
             controller: _pageController,
             onPageChanged: (p) => setState(() => _currentPage = p),
             children: [
-              // 페이지 0: 말씀
+              // 페이지 0: 말씀 (자체 내부 스크롤뷰 내장)
               BibleVerseList(
                 chapterTitle: _chapterTitle,
                 verses: _verses,
                 showSwipeHint: true,
               ),
-              // 페이지 1: 묵상
+              // 페이지 1: 묵상 탭 (키보드 대응 외부 스크롤 및 카드 높이 한계 지정)
               Container(
                 color: AppColors.bg,
                 padding: const EdgeInsets.all(16),
                 child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
                   child: Column(
                     children: [
                       QTQuestionCard(
@@ -184,11 +184,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         compact: true,
                       ),
                       const SizedBox(height: 14),
-                      MeditationCard(
-                        controller: _meditationCtrl,
-                        meditation: _meditation,
-                        compact: true,
+                      // MeditationCard 내부의 텍스트가 격리되어 스크롤되도록 고정된 크기 제약 한계선 지정
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minHeight: 240, // 내용이 없을 때 카드 기본 최소 높이
+                          maxHeight: 340, // 키보드가 올라와도 화면 전체를 해치지 않는 최대 한계 높이
+                        ),
+                        child: MeditationCard(
+                          controller: _meditationCtrl,
+                          meditation: _meditation,
+                          compact: true,
+                        ),
                       ),
+                      // 키보드가 활성화되었을 때 입력창 하단이 잘리거나 가려지는 현상 보완용 간격 패딩 추가
+                      SizedBox(
+                          height: MediaQuery.of(context).viewInsets.bottom > 0
+                              ? 30
+                              : 0),
                     ],
                   ),
                 ),

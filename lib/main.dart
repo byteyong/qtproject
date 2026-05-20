@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../screens/home_screen.dart';
-import '../screens/sharing_screen.dart';
-import '../screens/calendar_screen.dart';
+import 'screens/auth_wrapper.dart';
+import 'screens/home_screen.dart';
+import 'screens/sharing_screen.dart';
+import 'screens/calendar_screen.dart';
 
 void main() {
   runApp(const BibleQTApp());
@@ -21,14 +22,15 @@ class BibleQTApp extends StatelessWidget {
         textTheme: GoogleFonts.notoSansKrTextTheme(),
         useMaterial3: true,
       ),
-      home: const MainShell(),
+      home: const AuthWrapper(), // 수정: Wrapper 클래스 매핑
     );
   }
 }
 
-// ── 앱 전체를 감싸는 Shell (사이드바 + 콘텐츠) ──────────────────
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  final VoidCallback onLogout;
+
+  const MainShell({super.key, required this.onLogout});
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -51,13 +53,12 @@ class _MainShellState extends State<MainShell> {
       backgroundColor: const Color(0xFFF4F7F5),
       body: Row(
         children: [
-          // ── 사이드바 (항상 표시) ──
           _Sidebar(
             selectedIndex: _selectedIndex,
             isNarrow: isNarrow,
             onTap: (i) => setState(() => _selectedIndex = i),
+            onLogout: widget.onLogout,
           ),
-          // ── 콘텐츠 영역 ──
           Expanded(child: _screens[_selectedIndex]),
         ],
       ),
@@ -65,16 +66,17 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-// ── 사이드바 ────────────────────────────────────────────────────
 class _Sidebar extends StatelessWidget {
   final int selectedIndex;
   final bool isNarrow;
   final void Function(int) onTap;
+  final VoidCallback onLogout;
 
   const _Sidebar({
     required this.selectedIndex,
     required this.isNarrow,
     required this.onTap,
+    required this.onLogout,
   });
 
   @override
@@ -107,6 +109,22 @@ class _Sidebar extends StatelessWidget {
               ),
             );
           }),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Tooltip(
+              message: '로그아웃',
+              child: GestureDetector(
+                onTap: onLogout,
+                child: SizedBox(
+                  width: isNarrow ? 40 : 44,
+                  height: isNarrow ? 40 : 44,
+                  child: const Icon(Icons.logout_rounded,
+                      color: Color(0xFF6B7E8F), size: 22),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

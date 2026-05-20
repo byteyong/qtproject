@@ -14,7 +14,6 @@ dependencies:
   intl: ^0.19.0
   google_fonts: ^6.2.1
   google_generative_ai: ^0.4.5
-  shared_preferences: ^2.2.0 # 로그인 상태를 앱이 꺼져도 기억할 수 있도록
 
 dev_dependencies:
   flutter_test:
