@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  bible-study-api:
+    container_name: bible_study_container
+    # 현재 폴더에 있는 Dockerfile을 기반으로 이미지를 빌드합니다.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # 나스가 켜질 때나 에러로 인해 꺼졌을 때 자동으로 재시작하도록 설정합니다.
+    restart: always
+    # 사용자님이 지정하신 1225 포트를 나스 외부 포트와 매칭합니다.
+    ports:
+      - "1225:1225"
+    # 같은 폴더에 있는 .env 파일의 환경 변수를 컨테이너 내부에 주입합니다.
+    env_file:
+      - .env
+    # 실시간 로그 확인 및 시간대를 한국 시간(KST)으로 맞춥니다.
+    environment:
+      - TZ=Asia/Seoul
