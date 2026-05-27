@@ -1,42 +1,98 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 1225;
 
-// 미들웨어 설정
 app.use(cors());
 app.use(express.json());
 
-// 임시 인메모리 데이터베이스 (실제 운영시에는 DB 모델 연결)
-let userMeditations = [];
+// 💡 DB 커넥션 풀 설정 (본인의 DB 정보에 맞게 수정하세요)
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+});
 
-// 더미 성경 데이터 백업본
-const DUMMY_BIBLE = {
-  title: "요한복음 3장",
-  verses: [
-    { id: 1, text: "바리새인 중에 니고데모라 하는 사람이 있으니 유대인의 관리라" },
-    { id: 2, text: "그가 밤에 예수께 와서 이르되 랍비여 우리가 당신은 하나님께로부터 오신 선생인 줄 아나이다" },
-    { id: 16, text: "하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라" }
-  ]
-};
+// 1. 회원가입 라우터 (DB 연동 및 비밀번호 암호화 적용)
+app.post('/api/auth/signup', async (req, res) => {
+  const { email, password } = req.body; // 이미지 구조에 name 등 추가 필드가 있다면 여기서 추출
 
-// 1. 로그인 라우터
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-
-  // 단순 검증 예시 (필요에 따라 암호화 및 DB 검증 추가)
   if (!email || !password) {
     return res.status(400).json({ message: "이메일과 비밀번호를 모두 입력해주세요." });
   }
 
-  // 로그인 성공 응답 (간단한 토큰 세션 반환)
-  return res.status(200).json({
-    message: "로그인 성공",
-    token: "mock-jwt-token-xyz",
-    user: { email: email }
-  });
+  try {
+    // 1-1. 이메일 중복 체크
+    const [existingUsers] = await pool.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (existingUsers.length > 0) {
+      return res.status(409).json({ message: "이미 존재하는 이메일입니다." });
+    }
+
+    // 1-2. 비밀번호 암호화 (Salt Rounds: 10)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 1-3. DB에 유저 정보 저장 (테이블명 users와 컬럼명은 이미지에 맞게 수정)
+    await pool.execute(
+      'INSERT INTO users (email, password) VALUES (?, ?)',
+      [email, hashedPassword] // 추가 필드가 있다면 쿼리와 배열에 추가
+    );
+
+    return res.status(201).json({ message: "회원가입이 완료되었습니다." });
+  } catch (error) {
+    console.error("회원가입 오류:", error);
+    return res.status(500).json({ message: "서버 오류로 회원가입에 실패했습니다." });
+  }
+});
+
+// 2. 로그인 라우터 (DB 조회 및 비밀번호 검증)
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "이메일과 비밀번호를 모두 입력해주세요." });
+  }
+
+  try {
+    // 2-1. DB에서 유저 조회
+    const [users] = await pool.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({ message: "이메일 또는 비밀번호가 올바르지 않습니다." });
+    }
+
+    const user = users[0];
+
+    // 2-2. 비밀번호 일치 여부 검증 (입력된 비밀번호 vs DB의 암호화된 비밀번호)
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "이메일 또는 비밀번호가 올바르지 않습니다." });
+    }
+
+    // 2-3. 로그인 성공 응답
+    return res.status(200).json({
+      message: "로그인 성공",
+      token: "mock-jwt-token-xyz", // 실제 운영 시 jsonwebtoken(JWT) 패키지를 사용해 발급
+      user: { id: user.id, email: user.email }
+    });
+  } catch (error) {
+    console.error("로그인 오류:", error);
+    return res.status(500).json({ message: "서버 오류로 로그인에 실패했습니다." });
+  }
 });
 
 // 2. 성경 데이터 제공 라우터
