@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../widgets/app_colors.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -28,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       // 본인의 서버 주소에 맞게 호스트를 수정하세요 (에뮬레이터 환경은 보통 10.0.2.2)
-      final url = Uri.parse('http://10.0.2.2:3000/api/auth/login');
+      final url = Uri.parse('http://39.115.91.69:1225/api/auth/login');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -166,6 +167,36 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.bold)),
                   ),
+                ),
+                // ... 로그인 버튼 SizedBox 아래에 추가
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      '아직 계정이 없으신가요?',
+                      style:
+                          TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SignupScreen()),
+                        );
+                      },
+                      child: const Text(
+                        '회원가입',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

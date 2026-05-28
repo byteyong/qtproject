@@ -2,10 +2,15 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
+//const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 1225;
+const mysql = require('mysql2/promise');
+const bcrypt = require('bcrypt');
+
+const DUMMY_BIBLE = { /* 성경 데이터 */ };
+const userMeditations = [];
 
 app.use(cors());
 app.use(express.json());
@@ -22,14 +27,13 @@ const pool = mysql.createPool({
 
 // 1. 회원가입 라우터 (DB 연동 및 비밀번호 암호화 적용)
 app.post('/api/auth/signup', async (req, res) => {
-  const { email, password } = req.body; // 이미지 구조에 name 등 추가 필드가 있다면 여기서 추출
+  const { email, password, nickname } = req.body; // nickname 추가
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "이메일과 비밀번호를 모두 입력해주세요." });
+  if (!email || !password || !nickname) {
+    return res.status(400).json({ message: "이메일, 닉네임, 비밀번호를 모두 입력해주세요." });
   }
 
   try {
-    // 1-1. 이메일 중복 체크
     const [existingUsers] = await pool.execute(
       'SELECT * FROM users WHERE email = ?',
       [email]
@@ -39,13 +43,12 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(409).json({ message: "이미 존재하는 이메일입니다." });
     }
 
-    // 1-2. 비밀번호 암호화 (Salt Rounds: 10)
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 1-3. DB에 유저 정보 저장 (테이블명 users와 컬럼명은 이미지에 맞게 수정)
+    // password → password_hash, nickname 추가
     await pool.execute(
-      'INSERT INTO users (email, password) VALUES (?, ?)',
-      [email, hashedPassword] // 추가 필드가 있다면 쿼리와 배열에 추가
+      'INSERT INTO users (email, password_hash, nickname) VALUES (?, ?, ?)',
+      [email, hashedPassword, nickname]
     );
 
     return res.status(201).json({ message: "회원가입이 완료되었습니다." });
@@ -77,7 +80,7 @@ app.post('/api/auth/login', async (req, res) => {
     const user = users[0];
 
     // 2-2. 비밀번호 일치 여부 검증 (입력된 비밀번호 vs DB의 암호화된 비밀번호)
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
       return res.status(401).json({ message: "이메일 또는 비밀번호가 올바르지 않습니다." });

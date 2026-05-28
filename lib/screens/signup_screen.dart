@@ -12,6 +12,7 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _emailCtrl = TextEditingController();
+  final _nicknameCtrl = TextEditingController(); // 추가
   final _passwordCtrl = TextEditingController();
   final _passwordConfirmCtrl = TextEditingController(); // 비밀번호 확인용
   bool _isLoading = false;
@@ -32,13 +33,14 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final url = Uri.parse('http://10.0.2.2:3000/api/auth/signup');
+      final url = Uri.parse('http://39.115.91.69:1225/api/auth/signup');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailCtrl.text.trim(),
           'password': _passwordCtrl.text,
+          'nickname': _nicknameCtrl.text.trim(), // nickname 추가
         }),
       );
 
@@ -65,6 +67,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   void dispose() {
     _emailCtrl.dispose();
+    _nicknameCtrl.dispose();
     _passwordCtrl.dispose();
     _passwordConfirmCtrl.dispose();
     super.dispose();
@@ -135,6 +138,27 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 const SizedBox(height: 20),
 
+                // 이메일 TextField 아래에 추가
+                const SizedBox(height: 20),
+                const Text('닉네임',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textMuted)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _nicknameCtrl,
+                  decoration: InputDecoration(
+                    hintText: '사용할 닉네임을 입력하세요',
+                    filled: true,
+                    fillColor: AppColors.bg,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                  ),
+                ),
                 // 비밀번호 입력
                 const Text('비밀번호',
                     style: TextStyle(
